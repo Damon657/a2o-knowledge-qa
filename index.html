@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A2O 知識庫問答</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+TC:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f5f5f5; --paper2:#ececec; --ink:#2d3142; --muted:#4f5d75; --soft:#5a6580;
+    --accent:#bf4520; --accent-tint:rgba(191,69,32,.07);
+    --rule:rgba(45,49,66,.12); --rule-solid:#bfc0c0; --ok:#2e7d4f; --bad:#b3402e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{background:var(--paper);color:var(--ink);
+    font-family:'Noto Sans TC','Geist',system-ui,sans-serif;font-size:15px;line-height:1.7;
+    display:flex;flex-direction:column;}
+
+  /* ── 頁首 ── */
+  header{border-bottom:1px solid var(--rule);background:var(--paper);
+    padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand h1{font-family:'Instrument Serif','Noto Serif TC',serif;font-weight:400;
+    font-size:26px;letter-spacing:-.01em;}
+  .brand .eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;
+    letter-spacing:.18em;color:var(--muted);text-transform:uppercase;}
+  .spacer{flex:1;}
+  select,.hbtn{font-family:inherit;font-size:12.5px;color:var(--ink);background:#fff;
+    border:1px solid var(--rule);border-radius:999px;padding:6px 13px;cursor:pointer;}
+  select:hover,.hbtn:hover{border-color:var(--rule-solid);}
+  .hbtn.danger{color:var(--bad);}
+  .keychip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);
+    border:1px solid var(--rule);border-radius:999px;padding:6px 13px;background:#fff;cursor:pointer;}
+  .keychip i{width:8px;height:8px;border-radius:50%;background:#b9b3a9;}
+  .keychip.ok i{background:var(--ok);} .keychip.bad i{background:var(--bad);}
+
+  /* ── 對話區 ── */
+  #chat{flex:1;overflow-y:auto;padding:26px 18px 12px;}
+  .col{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+  .msg{max-width:86%;padding:12px 16px;border-radius:12px;white-space:pre-wrap;word-break:break-word;}
+  .msg.user{align-self:flex-end;background:var(--accent-tint);border:1px solid rgba(191,69,32,.25);
+    border-radius:12px 12px 3px 12px;}
+  .msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--rule);
+    border-radius:12px 12px 12px 3px;}
+  .msg.bot.error{border-color:rgba(179,64,46,.4);background:#fdf3f1;}
+  .msg.bot h3{font-size:14.5px;margin:8px 0 4px;font-weight:700;}
+  .msg.bot ul,.msg.bot ol{padding-left:1.3em;margin:4px 0;}
+  .msg.bot li{margin:2px 0;}
+  .msg.bot code{font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;
+    background:var(--paper2);padding:1px 5px;border-radius:4px;}
+  .msg.bot strong{font-weight:700;}
+  .srcs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--rule);}
+  .src{font-family:'Geist Mono',ui-monospace,monospace;font-size:10.5px;color:var(--soft);
+    border:1px solid var(--rule);border-radius:4px;padding:2px 8px;background:var(--paper);}
+  .src.stop{color:var(--accent);border-color:rgba(191,69,32,.3);}
+  .typing{display:inline-flex;gap:4px;padding:4px 0;}
+  .typing i{width:6px;height:6px;border-radius:50%;background:var(--rule-solid);animation:blink 1.2s infinite;}
+  .typing i:nth-child(2){animation-delay:.2s;} .typing i:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
+  /* ── 建議問題 ── */
+  #suggest{max-width:760px;margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:7px;}
+  #suggest button{font-family:inherit;font-size:12.5px;color:var(--soft);background:#fff;
+    border:1px solid var(--rule);border-radius:999px;padding:6px 14px;cursor:pointer;}
+  #suggest button:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── 輸入區 ── */
+  footer{border-top:1px solid var(--rule);background:var(--paper);padding:14px 18px 10px;}
+  .inwrap{max-width:760px;margin:0 auto;}
+  .inbox{display:flex;gap:10px;align-items:flex-end;background:#fff;border:1px solid var(--rule);
+    border-radius:14px;padding:10px 12px;transition:border-color .15s;}
+  .inbox:focus-within{border-color:var(--accent);}
+  textarea#q{flex:1;border:none;outline:none;resize:none;font-family:inherit;font-size:14.5px;
+    line-height:1.6;max-height:140px;background:transparent;color:var(--ink);}
+  #send{border:none;background:var(--accent);color:#fff;border-radius:10px;width:40px;height:40px;
+    font-size:16px;cursor:pointer;flex:none;}
+  #send:disabled{opacity:.4;cursor:not-allowed;}
+  #send.stop{background:var(--ink);}
+  .foot-note{max-width:760px;margin:8px auto 0;font-size:11px;color:var(--muted);text-align:center;}
+
+  /* ── 金鑰門檻 ── */
+  #gate{position:fixed;inset:0;background:rgba(45,49,66,.45);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:18px;z-index:50;}
+  #gate.hidden{display:none;}
+  .gate-card{background:var(--paper);border:1px solid var(--rule);border-radius:16px;
+    max-width:440px;width:100%;padding:28px;}
+  .gate-card h2{font-family:'Instrument Serif','Noto Serif TC',serif;font-weight:400;font-size:24px;margin-bottom:4px;}
+  .gate-card p{font-size:13px;color:var(--muted);margin:8px 0 14px;}
+  .gate-card label{font-size:12px;font-weight:700;color:var(--soft);display:block;margin-bottom:6px;}
+  .keyrow{display:flex;gap:8px;}
+  .keyrow input{flex:1;font-family:'Geist Mono',ui-monospace,monospace;font-size:12.5px;
+    border:1px solid var(--rule);border-radius:8px;padding:10px 12px;color:var(--ink);}
+  .gate-err{font-size:12px;color:var(--bad);margin-top:8px;min-height:1em;}
+  .gate-note{font-size:11.5px;color:var(--muted);margin-top:12px;line-height:1.7;
+    border-top:1px dashed var(--rule);padding-top:10px;}
+  .gate-note a{color:var(--accent);}
+  .gate-btns{display:flex;gap:8px;margin-top:16px;}
+  .gbtn{flex:1;padding:11px;border-radius:9px;font-size:13.5px;font-weight:700;cursor:pointer;
+    border:1px solid var(--ink);background:var(--ink);color:#fff;font-family:inherit;}
+  .gbtn.ghost{background:transparent;color:var(--ink);}
+  .gbtn:hover{opacity:.88;}
+
+  /* ── 知識庫清單 ── */
+  #kbpanel{position:fixed;top:64px;right:18px;width:min(360px,calc(100vw - 36px));
+    background:#fff;border:1px solid var(--rule);border-radius:14px;padding:16px;z-index:40;
+    display:none;max-height:min(70vh,560px);overflow:auto;}
+  #kbpanel.open{display:block;}
+  #kbpanel h3{font-size:13px;margin-bottom:10px;}
+  #kbpanel .doc{border-top:1px dashed var(--rule);padding:8px 0;display:flex;gap:8px;align-items:baseline;}
+  #kbpanel .doc b{font-size:12.5px;font-weight:600;}
+  #kbpanel .doc span{font-family:'Geist Mono',ui-monospace,monospace;font-size:10px;color:var(--soft);}
+  #kbpanel .doc .cur{color:var(--ok);} #kbpanel .doc .old{color:var(--bad);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>A2O 知識庫問答</h1>
+    <span class="eyebrow">Groq · RAG · Local-first</span>
+  </div>
+  <div class="spacer"></div>
+  <select id="model" title="模型">
+    <option value="llama-3.3-70b-versatile">Llama 3.3 70B（均衡）</option>
+    <option value="llama-3.1-8b-instant">Llama 3.1 8B（最快）</option>
+    <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+    <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+  </select>
+  <button class="keychip" id="keyChip" title="管理 Groq API Key"><i></i><span>金鑰未設定</span></button>
+  <button class="hbtn" id="kbBtn">知識庫</button>
+  <button class="hbtn danger" id="clearBtn">清除對話</button>
+</header>
+
+<div id="kbpanel">
+  <h3>知識庫文件（<span id="kbCount"></span>）</h3>
+  <div id="kbList"></div>
+</div>
+
+<div id="chat">
+  <div class="col" id="msgs">
+    <div class="msg bot">你好！我是 <strong>A2O 知識庫問答助手</strong>。
+公司制度（新人須知、報價流程、退換貨辦法）、產品規格（LX-350 產品母稿）、客服 FAQ、客戶與展後名單等資料都在我的知識庫裡。
+回答只依據知識庫內容——沒有的我會直說，不會編造。有什麼想問的？</div>
+  </div>
+</div>
+
+<div id="suggest"></div>
+
+<footer>
+  <div class="inwrap">
+    <div class="inbox">
+      <textarea id="q" rows="1" placeholder="輸入問題…（Enter 送出，Shift+Enter 換行）"></textarea>
+      <button id="send" title="送出">➤</button>
+    </div>
+    <div class="foot-note">答案由 AI 依知識庫生成，可能出錯；<b>對外回覆客戶前請人工覆核</b>。API Key 僅存於你的瀏覽器 localStorage。</div>
+  </div>
+</footer>
+
+<!-- 金鑰門檻 -->
+<div id="gate">
+  <div class="gate-card">
+    <h2>需要 Groq API Key</h2>
+    <p>這個問答服務以 Groq 雲端模型驅動。輸入你自己的 API Key 才能開始使用。</p>
+    <label>GROQ API KEY</label>
+    <div class="keyrow">
+      <input id="keyInput" type="password" placeholder="gsk_..." autocomplete="off">
+      <button class="hbtn" id="keyEye" title="顯示/隱藏">👁</button>
+    </div>
+    <div class="gate-err" id="gateErr"></div>
+    <div class="gate-btns">
+      <button class="gbtn" id="keySave">儲存並開始</button>
+      <button class="gbtn ghost" id="keyGet">免費申請 Key ↗</button>
+    </div>
+    <div class="gate-note">
+      金鑰只會存在<b>你的瀏覽器</b> localStorage，不會傳到本網站的任何伺服器；
+      呼叫 Groq 時由瀏覽器直接帶上。公開部署的頁面請使用<b>個人金鑰</b>並自行留意用量。
+      免費申請：<a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ══════════ 1. 知識庫（內嵌文件） ══════════ */
+const KB = [
+{ id:'company', title:'A2O 練習包說明', status:'參考', text:
+`A2O（虛構）是精密零組件廠，做沖壓件、外殼件、線束；客戶有整車廠、電子廠，也賣售後改裝用的線組。北辰汽車也是虛構的客戶。
+產品型號：QZ-210 沖壓支架、QZ-350 車用外殼、WH-12 行車記錄器電源線組、SC-800 倒車雷達線束、TC-40 防水端子。
+本知識庫為《智慧行政與行銷業務全方位AI應用實戰班》練習教材，所有公司、人名、電話、Email、身分證字號皆為程式產生的假資料。
+業務與行銷制度文件另以「鹿溪衛浴（虛構）」為背景公司。` },
+
+{ id:'handbook2026', title:'新人須知 2026 版', status:'現行', text:
+`鹿溪衛浴（虛構）新人須知 2026 版，生效日 2026-03-01，本版取代 2024 版。
+1. 上班與請假：上班 08:30–17:30，午休 12:00–13:00。請假在人資系統線上申請，前一天下班前送出；臨時病假當天 09:00 前打給主管。
+2. 客戶詢問怎麼接：一般詢問 1 個工作天內回覆；客訴 4 個工作小時內先回第一封（說明已收到、誰負責、何時再回）；所有詢問都要登記在案件庫，寫清楚客戶、產品、狀態。
+3. 報價權限：業務可以給到牌價 95 折；低於 95 折或單筆超過新台幣 50 萬元，要業務主管核准；海外報價一律經業務主管。詳細看報價流程。
+4. 退換貨：收貨 14 天內可申請，詳細看退換貨辦法。
+5. 對外承諾：交期、認證、保固只能照公司文件講，文件沒寫的不要自己答應。免費到府、賠償、折讓、「保證」這類承諾一律要主管核准，不可以先答應客戶。產品對外說法以「產品母稿」為準。
+6. 客訴回覆三段式：①先接住情緒（謝謝告知、造成困擾很抱歉）②再說明處理（需要客戶提供什麼、我們會怎麼做）③最後留窗口（誰負責、什麼時候再回）。
+7. 找誰：規格、認證、品質找品保課王課長；價格、交期、報價核准找業務主管劉經理；退換貨、出貨找物流課江組長。` },
+
+{ id:'handbook2024', title:'新人須知 2024 版', status:'已停用', text:
+`鹿溪衛浴（虛構）新人須知 2024 版，生效日 2024-01-01。【已停用，僅供歷史參考，回答一律以 2026 版為準】
+舊版差異：報價權限為牌價 9 折、單筆超過 100 萬要主管核准；退換貨收貨 7 天內；詢問記在業務自己的 Excel；客訴 24 小時內回覆；請假填紙本假單。` },
+
+{ id:'quote', title:'報價流程', status:'現行', text:
+`報價流程（鹿溪衛浴，版次 2026-03，負責：業務主管劉經理）。
+步驟：①確認客戶要的型號、數量、交貨地點、希望時間 ②查牌價表算出報價 ③折扣在權限內由業務直接出報價單 ④折扣超過權限送業務主管核准後再出 ⑤報價單寄出後在案件庫把狀態改成「已回覆」。
+折扣權限：業務牌價 95 折以內；低於 95 折或單筆超過新台幣 50 萬元需業務主管核准；海外報價一律業務主管核准，涉及認證的同時給品保課確認。
+報價單有效期 30 天；交期寫「訂單確認後由業務回覆」，不寫死日期。` },
+
+{ id:'return', title:'退換貨辦法', status:'現行', text:
+`退換貨辦法（鹿溪衛浴，版次 2026-03，負責：物流課江組長）。
+期限：收貨 14 天內提出申請。
+可以退換：未拆封未安裝可退貨全額退款；產品瑕疵（滴水、鍍層剝落）換新品、運費公司負擔；少零件補寄缺少的零件、不用寄回整組。
+不能退換：已安裝且非產品瑕疵（例如買錯尺寸）、人為損壞、未依說明書安裝。
+包裝破損：簽收時發現外箱破損請當場拍照，3 天內通報業務或客服；超過 3 天由物流課判斷。
+誰能答應客戶：上述以內的處理客服可直接答應；免費到府、賠償等超出者要主管核准。` },
+
+{ id:'master', title:'LX-350 產品母稿（核准版 v3）', status:'現行', text:
+`LX-350 廚房伸縮龍頭產品母稿（核准版 v3，核准日 2026-09-01）。官網、社群、EDM、簡報、業務話術都從這份改寫；只能用標【可對外】的內容，【不可對外】的不能出現在任何對外文字裡；這份沒寫的數字不要自己補。
+規格【可對外】：單把手廚房伸縮龍頭，抽拉噴頭兩段出水（柱狀、花灑）；本體低鉛銅；表面亮面鍍鉻、霧黑兩色；抽拉軟管 1.2 公尺尼龍編織；35mm 陶瓷閥芯；0.3 MPa 下每分鐘 6.5 公升；進水標準 4 分牙（1/2 吋）附冷熱軟管各 1 條；檯面開孔 32–38 mm，單槽雙槽都適用。
+認證與測試【可對外】：台灣省水標章；NSF/ANSI 61（飲用水系統元件）；NSF/ANSI 372（無鉛）；陶瓷閥芯開關壽命 50 萬次（第三方實驗室報告 2026-05）；鍍層鹽霧測試 96 小時通過。
+目前沒有的認證【可對外但只能說「目前沒有」】：英國 WRAS 目前沒有；德國 KTW-BWGL 目前沒有。客戶問到時回「目前未取得，可以評估送測」，不可以說多久能拿到，送不送測由產品經理決定。
+保固【可對外】：陶瓷閥芯 5 年；本體與鍍層 3 年；抽拉軟管與起泡器 1 年；須保留購買證明，人為損壞、未依說明書安裝不在保固範圍。
+適用場景【可對外】：家庭廚房翻修、系統廚具搭配、民宿與商務旅館共用廚房。
+客戶效益【可對外】：1.2 公尺軟管大鍋角落都沖得到；兩段出水柱狀沖得乾淨、花灑洗菜不噴濺；NSF/ANSI 372 無鉛煮飯泡茶安心；閥芯 50 萬次測試開關手感穩定不易滴水。
+【不可對外】陶瓷閥芯 100 萬次開關壽命內部測試中（2026 年 9 月跑到 72 萬次），報告未出，對外一律寫 50 萬次。
+窗口：規格認證問題找品保課王課長；價格交期找業務主管劉經理。` },
+
+{ id:'faq', title:'客服紀錄精選 FAQ', status:'現行', text:
+`客服紀錄精選（源自情境四客服紀錄）。
+Q：SC-800 有 WRAS 嗎？A：目前沒有 WRAS，可以評估送測，是否送測由產品經理決定後再回覆。（標準答案；若說「三個月可以拿到」是錯誤示範，不可承諾時間）
+Q：LX-350 保固幾年？A：陶瓷閥芯 5 年，本體與鍍層 3 年，抽拉軟管與起泡器 1 年，請保留購買證明。
+Q：可以去看實品嗎？A：展示館平日 09:00–17:00 開放，先約時間會有同仁介紹。
+Q：恆溫閥芯哪裡買？A：TC-40 恆溫閥芯可單獨購買，提供龍頭型號或照片確認尺寸，再轉附近經銷商。
+Q：角閥要買哪個尺寸？A：台灣一般住宅是 4 分牙，AV-12 適用；不確定就拍舊角閥照片。
+Q：淋浴柱水溫一直跳？A：先檢查冷熱水有沒有接反，再看熱水器溫度設定。
+Q：出水越來越小？A：多半是起泡器卡水垢，拆下用舊牙刷清一清再裝回。
+Q：抽拉龍頭拉出來不會回去？A：檢查下方配重有沒有掉，夾回軟管下垂最低點即可。
+Q：龍頭表面變色？A：海邊或常用清潔劑環境鍍層會較快變色，請拍照由品保判斷是否在 3 年鍍層保固內。
+Q：外箱破損？A：請拍照並提供破損箱數，3 天內通報，物流課安排換貨。
+Q：龍頭的水可以直接喝嗎？A：LX-350 有 NSF/ANSI 372 無鉛認證；能否生飲依家中水質，建議以淨水設備為準。
+Q：TC-40 閥芯可以單買嗎？A：可以，跟業務叫貨。
+Q：報價單可以改抬頭嗎？A：可以，提供正確公司抬頭與統編重新開立。` },
+
+{ id:'customers', title:'客戶清單與類型', status:'參考', text:
+`客戶清單（客戶.csv，25 家，皆假資料）。客戶類型六大類：經銷商（港都水電行、永泰水電材料行、大益衛浴建材、順發五金行、宏昌水電器材、東岸建材行）、代理商（德國 Rheinwasser Sanitär、瑞典 NordBad Trading、澳洲 Pacific Plumbing、日本 Hikari Setsubi）、建商（興築建設—年採購量最大，明年第一季有 320 戶建案議價中；遠揚營造—走標案看認證保固；鼎峰建設—新案指定恆溫系列；安居營造）、品牌商 OEM（海晴生活家居—LX-210 貼自家品牌要求不良率寫進合約；澄石廚衛—LX-350 搭廚具）、海外買主（阿聯酋 Al Noor、越南 Saigon、菲律賓 Manila BuildMart、馬來西亞 Kuala Fixtures—問過 WRAS 目前沒有）、飯店（嵐湖酒店 120 間客房淋浴汰換評估中、鹿港老街文旅、晴海度假飯店—海�鹽分問鍍層耐腐蝕、雲棲商旅）。` },
+
+{ id:'leads', title:'展後名單資料樣態', status:'參考', text:
+`情境一展後名單（64 筆）常見資料品質問題，適合做「清資料五道檢核」練習：
+①電話格式混亂：0900-xxx-xxx、0900xxxxxx、+886 900 311 526、缺號（0900-683-58 只有 8 碼）。
+②Email 缺失或錯誤：contact54example.com 少了 @；大小寫不一（CHEN.JH@...）；有些人只有電話沒 Email。
+③日期格式混用：10/17、2026.10.17、2026-10-18、115年10月17日（民國）、甚至 2026-10-61（無效日期）。
+④身分證字號混入名片備註（蕭先生 E141777631、何柏翰 F159791907、劉太太 B115244939），屬個資應避免收集。
+⑤重複與同名：陳 建宏/陳建宏經理/陳建宏（興築建設）三筆同一人；洪淑芬（雲棲商旅總經理）出現兩筆；黃秀英（同業）兩筆。
+⑥欄位錯位：電話與 Email 欄位互相放錯（葉承翰、蔡承翰）。
+⑦無效潛客：同業（龍頭廠）做報告、建築系學生、隨便看看說供應商很穩定。` },
+
+{ id:'voice', title:'客戶意見彙整要點', status:'參考', text:
+`情境五客戶意見（8–9 月，問卷/客服/社群/業務筆記）主要訊號：
+正面：出水很順水花不亂噴、恆溫很穩不會忽冷忽熱、開關手感好、霧黑色有質感、外型簡約、抽拉噴頭方便、起泡器出水柔和、設計感比以前好。
+負面主題①安裝說明看不懂：9 月起說明書換純圖示版，師傅與消費者反映「只有圖不知道哪條接冷水」「第 4 步看不懂」「希望附文字」，出現次數最多。
+負面主題②包裝破損：外箱壓壞、破洞、濕掉、紙箱凹角龍頭刮痕。
+負面主題③交期與物流：出貨比預期慢、等了三週、交期一直延、訂了很久沒收到。
+負面主題④客服：客服電話打不通、留言兩天才回、LINE 客服回覆不一致。
+負面主題⑤價格：比別家貴、價格偏高、CP 值普通、希望有優惠。` },
+
+{ id:'meeting', title:'業務週會逐字稿與決議', status:'參考', text:
+`業務週會逐字稿（2026-10-27 週二 10:00）。出席：周佩如（業務課長）、張志明（業務）、林雅婷（品保）、陳柏翰（行銷）。
+決議①零配件展名單 62 筆，10/30（週五）前清完，分給四個業務，張志明負責。
+決議②北辰汽車 32 萬組線束年度案：業務想給九折被課長擋下——業務自己最多九五折，單筆超過五十萬要主管核；報價單週四給課長。
+決議③端子鬆脫這個月六件，有同事答應客戶免費換貨運費公司出，這要主管核准才行；林雅婷整理 8D 初稿 11/6 前給課長，要寫清楚換貨要主管核准。
+決議④QZ-350 新外殼英文型錄原排 11/20 太晚，改 11/13 前，北辰 11/14 來廠稽核要用。
+待議：IATF 16949 驗證今年要不要申請，要先問總經理預算，下次再議。` },
+
+{ id:'weekly', title:'三份週報樣本', status:'參考', text:
+`週報樣本（10/19–10/23）。
+業務課（張志明）：零配件展名單已打完 62 筆本週開始清理；北辰汽車 32 萬組線束年度案已拜訪下週出報價；本週報價 3 件成交 1 件；客訴端子鬆脫 4 件已轉品保。
+品保（林雅婷）：客戶抱怨 14 件（Email、LINE、電話）；端子鬆脫 6 件，其中一件業務答應免費換貨已提醒；安裝說明看不懂 9 件（9 月換純圖示版後變多）。
+行銷（陳柏翰）：展後名單去重後 57 人，已跟業務確認可開始寄 EDM；官網詢問本週 18 則比上週多 5 則；QZ-350 新外殼英文型錄初稿完成預計 11/20 定稿；社群貼文 3 篇，互動最好的是 WH-12 行車記錄器電源線組安裝教學。` },
+
+{ id:'shadow', title:'影子 AI 盤點（AI 工具使用調查）', status:'參考', text:
+`AI 工具使用調查（30 位同仁，假資料）：最常用工具為 ChatGPT（10 人，多為個人免費版）、公司 Copilot（8 人，公司企業版）、Gemini（6 人，個人免費版）、Claude（2 人）、Canva AI、瀏覽器翻譯外掛、會議錄音 App、AI 拍照翻譯、手機 AI 輸入法、GitHub 下載的 Excel 外掛。
+用途：改客戶來信英文、整理會議紀錄、貼報價單算折扣、查 IATF 條文、客訴寫 8D 初稿、排班 Excel 公式、貼客戶訂單算交期、寫 SOP 草稿、比較供應商報價、貼展後名單分類、寫型錄文案、貼客戶意見整理等。
+資安風險：15 人曾把客戶或公司資料貼進 AI（其中不少是個人免費版帳號）；6 人帳號類型「不知道」。這是「影子 AI」現象——未經公司核准、IT 看不到的 AI 使用，構成個資與機密外洩風險，是制定 AI 使用規範的依據。` },
+
+{ id:'pii', title:'客訴來信與個資去識別化', status:'參考', text:
+`客訴來信（含個資.csv，12 封，皆假資料）常見個資欄位：姓名、手機、Email、詳細住址、身分證字號（黃淑芬 D118131618）、家屬姓名與電話。
+去識別化原則：對外彙整客訴時應遮蔽姓名（王○豪）、手機中段、Email 帳號、地址巷弄號樓、身分證全部，保留產品與問題描述。
+來信主題：WH-12 行車記錄器電源線組一直重開機；說明書純圖示看不懂紅線接哪個保險絲；TC-40 端子鬆脫；SC-800 倒車雷達時好時壞；QZ-210 支架孔位對不上；QZ-350 外殼卡榫鬆問下雨會不會進水；TC-40 防水端子加購備品；希望安裝說明出影片。` },
+
+{ id:'work15', title:'行銷部一週 15 件事', status:'參考', text:
+`行銷部一週在做的 15 件事：①回覆客戶與潛在客戶來信詢問，確認產品規格與報價細節 ②整理檢驗報告，把實驗室數據轉成客戶看得懂的簡易摘要 ③更新官網產品頁，補上新款規格、售價與適用範圍 ④撰寫並寄送每週電子報，追蹤開信率與點擊率 ⑤規劃社群貼文素材，排版上稿並回覆留言私訊 ⑥盤點本週廣告預算，檢視投放成效並調整受眾 ⑦蒐集競品最新動態整理成內部簡報 ⑧產出流量與轉換週報，標註異常數據與優化建議 ⑨聯絡合作窗口追蹤專案進度 ⑩去識別化彙整客訴與客服問題回饋產品端 ⑪整理活動與檔期文宣確認印刷物如期 ⑫用 AI 生成文案初稿、會議重點，再人工覆核修改 ⑬整理行銷素材庫更新檔案命名分類 ⑭參與產品與業務週會同步行銷規劃蒐集需求 ⑮週五結案更新專案狀態排定下週優先順序。` },
+];
+
+/* ══════════ 2. 檢索（CJK 雙字元 + 英文字詞，TF-IDF 式評分） ══════════ */
+function shingles(q){
+  const out = [];
+  (q.toLowerCase().match(/[a-z0-9][a-z0-9\-\.]*/g) || []).forEach(w => out.push(w));
+  const cjk = q.replace(/[^\u4e00-\u9fff]/g, '');
+  if (cjk.length === 1) out.push(cjk);
+  for (let i = 0; i < cjk.length - 1; i++) out.push(cjk.slice(i, i + 2));
+  return out;
+}
+const DF = (() => {
+  const df = {};
+  for (const d of KB){
+    const set = new Set(shingles(d.title + d.text));
+    for (const s of set) df[s] = (df[s] || 0) + 1;
+  }
+  return df;
+})();
+function retrieve(query, k = 4){
+  const N = KB.length;
+  const scores = KB.map(d => {
+    let sc = 0;
+    const big = d.title + ' ' + d.text;
+    for (const s of new Set(shingles(query))){
+      const idf = Math.log((N + 1) / ((DF[s] || 0) + 0.5));
+      const hits = big.split(s).length - 1;
+      if (hits) sc += idf * (1 + Math.log(hits));
+    }
+    if (d.status === '現行') sc *= 1.15;
+    if (d.status === '已停用') sc *= 0.55;
+    return { d, sc };
+  }).filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc).slice(0, k);
+  return scores.map(x => x.d);
+}
+
+/* ══════════ 3. 狀態與 DOM ══════════ */
+const $ = s => document.querySelector(s);
+const CFG_KEY = 'a2o-kb-config';
+const cfg = Object.assign({ key: '', model: 'llama-3.3-70b-versatile' },
+  JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
+let busy = false, aborter = null;
+const history = [];
+
+const SUGGESTS = ['報價折扣權限是多少？', '退換貨的期限跟規定？', 'LX-350 有 WRAS 認證嗎？',
+  '陶瓷閥芯保固幾年？', '客訴要多久內回覆？', '新人請假要怎麼申請？'];
+
+function setKeyChip(){
+  const el = $('#keyChip');
+  el.classList.toggle('ok', !!cfg.key);
+  el.classList.toggle('bad', !cfg.key);
+  el.querySelector('span').textContent = cfg.key ? '金鑰已設定' : '金鑰未設定';
+}
+function renderKbPanel(){
+  $('#kbCount').textContent = KB.length + ' 份';
+  $('#kbList').innerHTML = KB.map(d =>
+    `<div class="doc"><b>${d.title}</b><span class="${d.status==='現行'?'cur':d.status==='已停用'?'old':''}">${d.status}</span></div>`).join('');
+}
+function renderSuggests(){
+  $('#suggest').innerHTML = SUGGESTS.map(s => `<button data-q="${s}">${s}</button>`).join('');
+  $('#suggest').querySelectorAll('button').forEach(b =>
+    b.addEventListener('click', () => { $('#q').value = b.dataset.q; send(); }));
+}
+
+/* ══════════ 4. 訊息渲染 ══════════ */
+function mdLite(t){
+  const esc = t.replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>');
+  const lines = esc.split('\n'); let html = '', inList = false;
+  for (const ln of lines){
+    const li = ln.match(/^\s*(?:[-*•]|\d+[.）)])\s+(.*)/);
+    if (li){ if (!inList){ html += '<ul>'; inList = true; } html += '<li>' + inline(li[1]) + '</li>'; continue; }
+    if (inList){ html += '</ul>'; inList = false; }
+    const h = ln.match(/^#{1,4}\s+(.*)/);
+    if (h) html += '<h3>' + inline(h[1]) + '</h3>';
+    else if (ln.trim() === '') html += '';
+    else html += inline(ln) + '\n';
+  }
+  if (inList) html += '</ul>';
+  return html.replace(/\n/g, '<br>');
+  function inline(s){
+    return s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+}
+function addMsg(cls, html){
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls; d.innerHTML = html;
+  $('#msgs').appendChild(d);
+  $('#chat').scrollTop = $('#chat').scrollHeight;
+  return d;
+}
+function addSources(el, docs){
+  if (!docs.length) return;
+  const s = document.createElement('div');
+  s.className = 'srcs';
+  s.innerHTML = '引用：' + docs.map(d => `<span class="src">${d.title}（${d.status}）</span>`).join('');
+  el.appendChild(s);
+  $('#chat').scrollTop = $('#chat').scrollHeight;
+}
+
+/* ══════════ 5. Groq 呼叫（SSE 串流） ══════════ */
+const API = 'https://api.groq.com/openai/v1/chat/completions';
+function systemPrompt(docs){
+  const kbText = docs.map(d => `【文件：${d.title}｜${d.status}】\n${d.text}`).join('\n\n');
+  return `你是「A2O 知識庫問答助手」，服務對象是公司業務、行銷與客服同仁。請嚴守以下規則：
+1. 只根據下方【知識庫】內容回答；知識庫沒有的資訊，就回答「知識庫中沒有這項資訊」，絕不編造、不使用自己的常識補充規定或數字。
+2. 新人須知 2024 版已停用；所有規定一律以 2026 版為準。
+3. 產品規格只能引用【LX-350 產品母稿】標示【可對外】的內容；母稿標示【不可對外】或「內部測試中」的數字（例如閥芯 100 萬次測試），絕不可出現在回答中，對外一律寫 50 萬次。
+4. WRAS、KTW-BWGL 認證目前沒有；只能說「目前未取得，可以評估送測」，不可說多久能拿到。
+5. 免費到府、賠償、折讓、「保證」等承諾需要主管核准；若使用者要求這類承諾，提醒需依公司流程報准。
+6. 回答用繁體中文、簡潔、重點條列；引用規定時在句末以（來源：文件名）標註。
+7. 所有資料皆為課程假資料，若被問到真實性，請說明這是訓練用的虛構資料。
+
+【知識庫】
+${kbText}
+【/知識庫】`;
+}
+async function groqChat(messages, onDelta){
+  aborter = new AbortController();
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + cfg.key },
+    body: JSON.stringify({ model: cfg.model, messages, temperature: 0.2, stream: true }),
+    signal: aborter.signal,
+  });
+  if (!res.ok){
+    let detail = '';
+    try { detail = (await res.json()).error?.message || ''; } catch(e){}
+    if (res.status === 401){ throw Object.assign(new Error('API Key 無效或已過期（401）'), { code: 401 }); }
+    if (res.status === 429){ throw Object.assign(new Error('已達速率限制，請稍後再試（429）' + (detail ? '：' + detail : '')), { code: 429 }); }
+    throw new Error('Groq 回應 ' + res.status + (detail ? '：' + detail : ''));
+  }
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', full = '';
+  while (true){
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const ln of lines){
+      const t = ln.trim();
+      if (!t.startsWith('data:')) continue;
+      const payload = t.slice(5).trim();
+      if (payload === '[DONE]') return full;
+      try {
+        const j = JSON.parse(payload);
+        const piece = j.choices?.[0]?.delta?.content || '';
+        if (piece){ full += piece; onDelta(piece); }
+      } catch(e){}
+    }
+  }
+  return full;
+}
+
+/* ══════════ 6. 送出流程 ══════════ */
+async function send(){
+  if (busy) return;
+  const q = $('#q').value.trim();
+  if (!q) return;
+  if (!cfg.key){ openGate('請先設定 Groq API Key'); return; }
+  $('#q').value = ''; $('#q').style.height = 'auto';
+  addMsg('user', mdLite(q));
+
+  const docs = retrieve(q);
+  addMsg('bot', '<span class="typing"><i></i><i></i><i></i></span>');
+  const bubble = $('#msgs').lastElementChild;
+  busy = true; setSendMode(true);
+  const messages = [
+    { role: 'system', content: systemPrompt(docs) },
+    ...history.slice(-6),
+    { role: 'user', content: q },
+  ];
+  try {
+    let acc = '';
+    const full = await groqChat(messages, (piece) => {
+      acc += piece;
+      bubble.innerHTML = mdLite(acc);
+      $('#chat').scrollTop = $('#chat').scrollHeight;
+    });
+    bubble.innerHTML = mdLite(full || '（模型沒有回覆內容）');
+    addSources(bubble, docs);
+    history.push({ role: 'user', content: q }, { role: 'assistant', content: full });
+  } catch (e){
+    if (e.name === 'AbortError'){
+      bubble.innerHTML = mdLite('（已停止）');
+      bubble.classList.add('error');
+    } else {
+      bubble.classList.add('error');
+      bubble.innerHTML = mdLite('⚠ ' + e.message + (e.code === 401 ? '\n請按右上角「金鑰」重新設定。' : ''));
+      if (e.code === 401){ cfg.key = ''; localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); setKeyChip(); openGate('API Key 無效，請重新輸入'); }
+    }
+  } finally {
+    busy = false; setSendMode(false); aborter = null;
+    $('#chat').scrollTop = $('#chat').scrollHeight;
+  }
+}
+function setSendMode(on){
+  const b = $('#send');
+  b.disabled = on ? false : false;
+  b.classList.toggle('stop', on);
+  b.textContent = on ? '■' : '➤';
+  b.title = on ? '停止產生' : '送出';
+}
+$('#send').addEventListener('click', () => {
+  if (busy && aborter){ aborter.abort(); return; }
+  send();
+});
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); if (!busy) send(); }
+});
+$('#q').addEventListener('input', function(){
+  this.style.height = 'auto'; this.style.height = Math.min(140, this.scrollHeight) + 'px';
+});
+
+/* ══════════ 7. 金鑰門檻 ══════════ */
+function openGate(msg){
+  $('#gateErr').textContent = msg || '';
+  $('#gate').classList.remove('hidden');
+  setTimeout(() => $('#keyInput').focus(), 50);
+}
+$('#keyEye').addEventListener('click', () => {
+  const i = $('#keyInput');
+  i.type = i.type === 'password' ? 'text' : 'password';
+});
+$('#keyGet').addEventListener('click', () => window.open('https://console.groq.com/keys', '_blank'));
+$('#keySave').addEventListener('click', async () => {
+  const k = $('#keyInput').value.trim();
+  if (!k){ $('#gateErr').textContent = '請輸入 API Key（gsk_ 開頭）'; return; }
+  $('#keySave').textContent = '驗證中…';
+  try {
+    const r = await fetch('https://api.groq.com/openai/v1/models', { headers: { Authorization: 'Bearer ' + k } });
+    if (!r.ok) throw new Error(r.status === 401 ? '金鑰無效（401），請到 console.groq.com/keys 確認' : 'Groq 回應 ' + r.status);
+    cfg.key = k;
+    localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+    setKeyChip();
+    $('#gate').classList.add('hidden');
+    $('#keyInput').value = '';
+  } catch (e){
+    $('#gateErr').textContent = e.message;
+  } finally {
+    $('#keySave').textContent = '儲存並開始';
+  }
+});
+$('#keyChip').addEventListener('click', () => {
+  if (cfg.key){
+    if (confirm('要移除已儲存的 Groq API Key 嗎？')){
+      cfg.key = ''; localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+      setKeyChip(); openGate('金鑰已移除，請重新設定');
+    }
+  } else openGate('');
+});
+
+/* ══════════ 8. 其他控制 ══════════ */
+$('#kbBtn').addEventListener('click', () => $('#kbpanel').classList.toggle('open'));
+document.addEventListener('click', e => {
+  if (!$('#kbpanel').contains(e.target) && e.target !== $('#kbBtn')) $('#kbpanel').classList.remove('open');
+});
+$('#clearBtn').addEventListener('click', () => {
+  if (!confirm('清除整段對話？')) return;
+  history.length = 0;
+  $('#msgs').innerHTML = '';
+  addMsg('bot', '對話已清除。有什麼想問的？');
+});
+$('#model').addEventListener('change', function(){
+  cfg.model = this.value;
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+});
+
+/* ══════════ 9. 初始化 ══════════ */
+$('#model').value = cfg.model;
+setKeyChip(); renderKbPanel(); renderSuggests();
+if (cfg.key) $('#gate').classList.add('hidden');
+else openGate('');
+
+/* 測試用（瀏覽器 console）：window.KB.retrieve('...') */
+window.KB = { retrieve, KB };
+</script>
+</body>
+</html>
